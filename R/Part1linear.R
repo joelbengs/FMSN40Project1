@@ -1,4 +1,4 @@
-#Preperations
+#Preparations
 library(ggplot2)
 plasma <- read.delim("Data/plasma.txt")
 head(plasma)
