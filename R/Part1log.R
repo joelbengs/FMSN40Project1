@@ -46,8 +46,6 @@ bp.loglinpred$conf.fit <- bp.loglinpred$pred.fit <- NULL
 )
 
 
-
-
 #### Basic residual analysis ####
 # Add the residuals to the predicted data, name them e.log (a vector of residuals).
 # Used in plotting as PRED is the dataset for that, not MODEL
