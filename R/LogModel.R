@@ -668,7 +668,7 @@ model.7 <- lm(log(betaplasma) ~ vituse + calories + fat + fiber + alcohol +
 
 # Backward elimination
 model.7
-dietarymodel <- step(model.7)
+(dietarymodel <- step(model.7))
 
 # Beta and exp(beta)
 dietarymodel$coefficients
@@ -679,5 +679,66 @@ exp(confint(dietarymodel))
 
 # Combine background and dietary using stepwise elimination
 backmodel <- contbmi.model
+backmodel$coefficients
+(largemodel <- lm(log(betaplasma) ~ age + sex + smokstat + quetelet + 
+                   vituse + calories + fiber + alcohol + betadiet,
+                 data = plasmanew))
+largemodel$coefficients
+
+model.stepAIC <- step(dietarymodel, 
+     scope = list(lower = model.0, upper = largemodel),
+     direction = "both")
+
+model.stepBIC <- step(dietarymodel,
+                      scope = list(lower = model.0, upper = largemodel),
+                      direction = "both", k = log(nrow(plasmanew))
+      )
+
+model.stepAIC$coefficients
+confint(model.stepAIC)
+exp(model.stepAIC$coefficients)
+exp(confint(model.stepAIC))
+
+model.stepBIC$coefficients
+confint(model.stepBIC)
+exp(model.stepBIC$coefficients)
+exp(confint(model.stepBIC))
+
+# Constructing the final model
+# Age model: logmodel
+sum.age <- summary(logmodel)
+# Background model: backmodel
+sum.background <- summary(backmodel)
+# Dietary model: dietarymodel
+sum.dietary <- summary(dietarymodel)
+# Step AIC model: model.stepAIC
+sum.aic <- summary(model.stepAIC)
+# Step BIC model: model.stepBIC
+sum.bic <- summary(model.stepBIC)
 
 
+(collect.R2s <- data.frame(
+  nr = seq(1, 5),
+  model = c("0.age", "1.background",  
+            "2.dietary", "3.step AIC", "4.step BIC"),
+  R2 = c(sum.age$r.squared,
+         sum.background$r.squared,
+         sum.dietary$r.squared,
+         sum.aic$r.squared,
+         sum.bic$r.squared),
+  R2.adj = c(sum.age$adj.r.squared,
+             sum.background$adj.r.squared,
+             sum.dietary$adj.r.squared,
+             sum.aic$adj.r.squared,
+             sum.bic$adj.r.squared)))
+
+# Step AIC has the lowest R2.adj => final model
+model.stepAIC$coefficients
+betaplasma.final <- cbind(plasmanew,
+                          fit = predict(model.stepAIC))
+
+
+ggplot(betaplasma.final, aes(x = age, y = betaplasma)) + geom_point(size = 1) + 
+  geom_line(aes(y = fit), color = "red")
+
+head(betaplasma.final)
