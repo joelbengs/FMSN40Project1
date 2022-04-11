@@ -320,15 +320,13 @@ anova(model.0, model.1)
 
 (collect.R2s <- data.frame(
   nr = seq(1, 2),
-  model = c("0.full model", "1.model with quetelet"),
-  R2 = c(sum.0$r.squared,
-         sum.1$r.squared),
+  model = c("0.bmicat", "1.quetelet"),
   R2.adj = c(sum.0$adj.r.squared,
              sum.1$adj.r.squared)))
 
-(collect.AIC <- data.frame(
+sz(collect.AIC <- data.frame(
   nr = seq(1, 2),
-  model = c("0.year", "1.year+region"),
+  model = c("0.fullmodel", "1.model with quetelet"),
   AIC(model.0, model.1),
   BIC(model.0, model.1)))
 
@@ -356,7 +354,7 @@ plasmanew$vituse <- relevel(plasmanew$vituse, ref = "Yes, fairly often")
 
 # it a model using all the dietary variables, 
 # vituse, calories, fat, fiber, alcohol, cholesterol, and betadiet
-dietmodel <- lm(log(betaplasma) ~ vituse + calories + calories + fat + fiber +
+dietmodel <- lm(log(betaplasma) ~ vituse + calories + fat + fiber +
                   alcohol + cholesterol + betadiet, data = plasmanew)
 dietmodel$coefficients
 
@@ -375,26 +373,36 @@ ggplot(betaplasma.diet, aes(x = fit, y = v)) +
   geom_hline(yintercept = 1/nrow(plasmanew)) +
   geom_hline(yintercept = 2*length(dietmodel$coefficients)/nrow(plasmanew), 
              color = "red") +
-  labs(title = "Betaplasma: leverage vs log length") +
-  labs(caption = "y = 1/n (black) and 2(p+1)/n (red)") +
+  labs(title = "Betaplasma: leverage vs log Yhat") +
+  xlab("log Yhat") + 
+  labs(caption = "y = 1/314 (black) and 18/314 (red)") +
   theme(text = element_text(size = 18))
   
-v.strange <- which(betaplasma.diet$v >= 0.1)
+v.strange <- which(betaplasma.diet$v >= 2*length(dietmodel$coefficients)/nrow(plasmanew))
+betaplasma.diet[v.strange, ]
 
 table(betaplasma.diet$alcohol)
 
 alcohol.strange <- which(betaplasma.diet$alcohol == 203)
 
-# plotting age vs betaplasma highlighting high leverage points and high alcohol consumption
-ggplot(betaplasma.diet, aes(age, log(betaplasma))) + 
+# plotting calories vs betaplasma highlighting high leverage points and high alcohol consumption
+ggplot(betaplasma.diet, aes(fit, log(betaplasma))) + 
   geom_point() +
   geom_point(data = betaplasma.diet[v.strange, ], 
              color = "red", size = 3, shape = 24) +
   geom_point(data = betaplasma.diet[alcohol.strange, ],
              color = "blue", size = 3, shape = 24) + 
-  labs(title = "Age vs Betaplasma",
+  labs(title = "Cholesterol vs log betaplasma",
        caption = "") +
-  theme(text = element_text(size = 18))
+  theme(text = element_text(size = 14))
+
+ggplot(betaplasma.diet, aes(alcohol, calories)) +
+  geom_point() +
+  geom_point(data = betaplasma.diet[alcohol.strange, ],
+             color = "blue", size = 3, shape = 24) + 
+  labs(title = "Alcohol vs calories",
+       caption = "") +
+  theme(text = element_text(size = 14))
 
 # plotting age vs studentized residuals 
 ggplot(betaplasma.diet, aes(x = fit, y = r)) +
@@ -407,9 +415,9 @@ ggplot(betaplasma.diet, aes(x = fit, y = r)) +
   geom_point(data = betaplasma.diet[alcohol.strange, ], 
              color = "blue", size = 4, shape = 24) +
   labs(title = "Betaplasma: residuals vs fitted values") +
-  xlab("fitted values (log betaplasma)") +
-  ylab("studentized residuals") +
-  theme(text = element_text(size = 18))
+  xlab("Fitted values (log betaplasma)") +
+  ylab("Studentized residuals") +
+  theme(text = element_text(size = 12))
 
 ggplot(betaplasma.diet, aes(x = fit, y = sqrt(abs(r)))) +
   geom_point(size = 1) +
@@ -423,13 +431,14 @@ ggplot(betaplasma.diet, aes(x = fit, y = sqrt(abs(r)))) +
   labs(title = "Betaplasma: constant variance?") +
   xlab("fitted values (log betaplasma)") +
   ylab("sqrt(|r*|)") +
-  theme(text = element_text(size = 18))
+  theme(text = element_text(size = 12))
 
 # Cook's distance
 betaplasma.diet$D <- cooks.distance(dietmodel)
 head(betaplasma.diet)
 
-r.large <- max(betaplasma.diet$r)
+r.large <- which(abs(betaplasma.diet$r) >= 3)
+betaplasma.diet[r.large,]
 
 (f1 <- length(dietmodel$coefficients))
 (f2 <- dietmodel$df.residual)
@@ -446,9 +455,9 @@ ggplot(betaplasma.diet, aes(fit, D)) +
   geom_hline(yintercept = 4/nrow(betaplasma.diet), linetype = 2, color = "red") +
   xlab("Fitted values") +
   ylab("D_i") +
-  labs(title = "Beta plasma: Cook's D") +
+  labs(title = "Beta plasma: Cook's Distance") +
   labs(caption = "4/n (dashed), F_0.5, p+1, n-(p+1) (solid)") +
-  theme(text = element_text(size = 14))
+  theme(text = element_text(size = 12))
 
 d.large <- max(betaplasma.diet$D)
 
@@ -477,12 +486,12 @@ ggplot(betaplasma.diet, aes(fit, df0)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas0") +
   labs(caption = "y = sqrt(F_0.5) and 2/sqrt(n)") +
-  theme(text = element_text(size = 14))
+  theme(text = element_text(size = 12))
 
 ggplot(betaplasma.diet, aes(fit, df1)) + 
   geom_point(size = 1) +
@@ -495,12 +504,12 @@ ggplot(betaplasma.diet, aes(fit, df1)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: Dfbetas1") +
   labs(caption = "y = sqrt(F_0.5) and 2/sqrt(n)") +
-  theme(text = element_text(size = 14))
+  theme(text = element_text(size = 12))
 
 ggplot(betaplasma.diet, aes(fit, df2)) + 
   geom_point(size = 1) +
@@ -513,12 +522,12 @@ ggplot(betaplasma.diet, aes(fit, df2)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas2") +
   labs(caption = "y = sqrt(F_0.5) and 2/sqrt(n)") +
-  theme(text = element_text(size = 14))
+  theme(text = element_text(size = 12))
 
 ggplot(betaplasma.diet, aes(fit, df3)) + 
   geom_point(size = 1) +
@@ -531,12 +540,12 @@ ggplot(betaplasma.diet, aes(fit, df3)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas3") +
   labs(caption = "y = sqrt(F_0.5) and 2/sqrt(n)") +
-  theme(text = element_text(size = 14))
+  theme(text = element_text(size = 12))
 
 ggplot(betaplasma.diet, aes(fit, df4)) + 
   geom_point(size = 1) +
@@ -549,12 +558,12 @@ ggplot(betaplasma.diet, aes(fit, df4)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas4") +
   labs(caption = "y = sqrt(F_0.5) and 2/sqrt(n)") +
-  theme(text = element_text(size = 14))
+  theme(text = element_text(size = 12))
 
 ggplot(betaplasma.diet, aes(fit, df5)) + 
   geom_point(size = 1) +
@@ -567,12 +576,12 @@ ggplot(betaplasma.diet, aes(fit, df5)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas5") +
   labs(caption = "y = sqrt(F_0.5) and 2/sqrt(n)") +
-  theme(text = element_text(size = 14))
+  theme(text = element_text(size = 12))
 
 ggplot(betaplasma.diet, aes(fit, df6)) + 
   geom_point(size = 1) +
@@ -585,7 +594,7 @@ ggplot(betaplasma.diet, aes(fit, df6)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas6") +
@@ -603,7 +612,7 @@ ggplot(betaplasma.diet, aes(fit, df7)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas7") +
@@ -621,7 +630,7 @@ ggplot(betaplasma.diet, aes(fit, df8)) +
   geom_point(data = betaplasma.diet[d.large, ],
              color = "pink", size = 4, shape = 24) + 
   geom_hline(yintercept = sqrt(cook.limit)*c(-1, 1), color = "red") +
-  geom_hline(yintercept = 2/sqrt(9)*c(-1, 1), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 2/sqrt(314)*c(-1, 1), color = "red", linetype = "dashed") +
   xlab("Fitted values") +
   ylab("Dfbetas") +
   labs(title = "Beta plasma: CDfbetas8") +
@@ -632,43 +641,10 @@ ggplot(betaplasma.diet, aes(fit, df8)) +
 #### Adjusting the model ####
 # Calculating AIC
 dietmodel$coefficients
-model.0 <- lm(log(betaplasma) ~ 1, data = plasmanew)
-(sum.0 <- summary(model.0))
-
-model.1 <- lm(log(betaplasma) ~ vituse, data = plasmanew)
-(sum.1 <- summary(model.1))
-anova(model.0, model.1)
-
-model.2 <- lm(log(betaplasma) ~ vituse + calories, data = plasmanew)
-(sum.2 <- summary(model.2))
-
-model.3 <- lm(log(betaplasma) ~ vituse + calories + fat, data = plasmanew)
-(sum.3 <- summary(model.3))
-
-model.4 <- lm(log(betaplasma) ~ vituse + calories + fat + fiber, data = plasmanew)
-(sum.4 <- summary(model.4))
-
-model.5 <- lm(log(betaplasma) ~ vituse + calories + fat + fiber + alcohol, 
-              data = plasmanew)
-(sum.5 <- summary(model.5))
-
-model.6 <- lm(log(betaplasma) ~ vituse + calories + fat + fiber + alcohol + 
-                cholesterol, data = plasmanew)
-(sum.6 <- summary(model.6))
-
-model.7 <- lm(log(betaplasma) ~ vituse + calories + fat + fiber + alcohol + 
-                cholesterol + betadiet , data = plasmanew)
-(sum.7 <- summary(model.7))
-
-(collect.AIC <- data.frame(
-  nr = seq(1, 8),
-  model = c("0.(Intercept)", "1.vituse", "2.calories", 
-            "3.fat", "4.fiber", "5.alcohol", "6.cholesterol", "7.betadiet"),
-  AIC(model.0, model.1, model.2, model.3, model.4, model.5, model.6, model.7)))
+nullmodel <- lm(log(betaplasma) ~ 1, data = plasmanew)
 
 # Backward elimination
-model.7
-(dietarymodel <- step(model.7))
+(dietarymodel <- step(dietmodel))
 
 # Beta and exp(beta)
 dietarymodel$coefficients
@@ -686,7 +662,7 @@ backmodel$coefficients
 largemodel$coefficients
 
 model.stepAIC <- step(dietarymodel, 
-     scope = list(lower = model.0, upper = largemodel),
+     scope = list(lower = nullmodel, upper = largemodel),
      direction = "both")
 
 model.stepBIC <- step(dietarymodel,
@@ -732,13 +708,13 @@ sum.bic <- summary(model.stepBIC)
              sum.aic$adj.r.squared,
              sum.bic$adj.r.squared)))
 
-# Step AIC has the lowest R2.adj => final model
+# Step AIC has the highest R2.adj => final model
 model.stepAIC$coefficients
 betaplasma.final <- cbind(plasmanew,
                           fit = predict(model.stepAIC))
 
-
-ggplot(betaplasma.final, aes(x = age, y = betaplasma)) + geom_point(size = 1) + 
-  geom_line(aes(y = fit), color = "red")
-
-head(betaplasma.final)
+finalmodel <- model.stepAIC
+finalmodel$coefficients
+confint(finalmodel)
+exp(finalmodel$coefficients)
+exp(confint(finalmodel))
