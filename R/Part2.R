@@ -183,9 +183,9 @@ catChangeFactor <- cbind(
 (catChangeFactor)
 # For continous model (Qmodel), we have to multiply by step length (33-22 = 11)
 contChangeFactor <- cbind(
-  relativeExpChange = 11*exp(Qmodel$coefficients["quetelet"]),
-  conf.lwr = 11*exp(confint(Qmodel)["quetelet", "2.5 %"]),
-  conf.upr = 11*exp(confint(Qmodel)["quetelet", "97.5 %"])
+  relativeExpChange = exp(11*Qmodel$coefficients["quetelet"]),
+  conf.lwr = exp(11*confint(Qmodel)["quetelet", "2.5 %"]),
+  conf.upr = exp(11*confint(Qmodel)["quetelet", "97.5 %"])
 )
 (contChangeFactor)
 
@@ -194,3 +194,4 @@ contChangeFactor <- cbind(
 Dmodel <- lm(log(betaplasma) ~ age + sex + smokstat + bmicat + quetelet, data = plasma )
 (confint(Dmodel)) # No, quetelet and BMIcat are both non-significant as the confidence interval includes zero.
 
+Dmodelcont <- lm(log(betaplasma) ~ age + sex + smokstat + quetelet, data = plasma )

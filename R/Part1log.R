@@ -95,3 +95,37 @@ ggplot(data = bp.loglinpred, aes(x = e.log)) +
   xlab("Residuals") +
   labs(title = "Histogram of residuals") +
   theme(text = element_text(size = 18))
+
+#### Prediction Intervals for young vs old person####
+plasma.x0 <- data.frame(age = c(25, 26, 75, 76))
+(plasma.y0.pred = cbind(plasma.x0,
+                        fit = predict(bp.loglinmodel, plasma.x0),
+                        conf = predict(bp.loglinmodel, plasma.x0, interval = "confidence"),
+                        pred = predict(bp.loglinmodel, plasma.x0, interval = "prediction")))
+
+plasma.y0.pred$conf.fit <- plasma.y0.pred$pred.fit <- NULL
+
+diff25 <- cbind(
+  fit = exp(plasma.y0.pred$fit[2]) - exp(plasma.y0.pred$fit[1]),
+  pred.lwr = exp(plasma.y0.pred$pred.lwr[2]) - exp(plasma.y0.pred$pred.lwr[1]),
+  pred.upr = exp(plasma.y0.pred$pred.upr[2]) - exp(plasma.y0.pred$pred.upr[1])
+)
+
+diff75 <- cbind(
+  fit = exp(plasma.y0.pred$fit[4]) - exp(plasma.y0.pred$fit[3]),
+  pred.lwr = exp(plasma.y0.pred$pred.lwr[4]) - exp(plasma.y0.pred$pred.lwr[3]),
+  pred.upr = exp(plasma.y0.pred$pred.upr[4]) - exp(plasma.y0.pred$pred.upr[3])
+)
+
+differences <- rbind(
+  diff25,
+  diff75
+)
+(differences)
+
+exp(plasma.y0.pred)
+
+exp(confint(bp.loglinmodel))
+
+#### 
+

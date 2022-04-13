@@ -63,11 +63,11 @@ bp.linpred$conf.fit <- bp.linpred$pred.fit <- NULL
               color = "red", linetype = "dashed", size = 1) +
     geom_line(data = bp.linpred, aes(y = pred.upr),
               color = "red", linetype = "dashed", size = 1) +
-    xlab("Length (cm)") +
-    ylab("Weight (g)") +
-    labs(title = "Betaplasma against age, linear model") +
+    xlab("Age") +
+    ylab("Plasma beta-carotene (ng/ml)") +
+    labs(title = "LinLin model: Plasma beta-carotene vs age") +
     labs(caption = 
-           "fitted linear model, 95% conf. and pred. intervals") +
+           "Fitted linear model, 95% conf. and pred. intervals") +
     theme(text = element_text(size = 18))
 )
 
@@ -80,22 +80,22 @@ head(bp.linpred)
 # Save the max-value in order to make the y-axis symmetrical 
 # in the plots. c is a function that combine two values in a vector.
 (bp.elin <- max(abs(bp.linpred$e.lin)))
-(bp.lim.elin <- c(-max.elin, max.elin))
+(bp.lim.elin <- c(-bp.elin, bp.elin))
 
 # Plot residuals against x, add a horizontal line at y=0,
 # add a moving average, geom_smooth(), to see trends,
 # and expand the y-axis to include +/- max residual.
 
+# Plots ####
 # Residuals vs x-values
 ggplot(data = bp.linpred, aes(x = age, y = e.lin)) +
   geom_point() +
   geom_hline(yintercept = 0) +
   geom_smooth() +
   expand_limits(y = bp.lim.elin) +
-  xlab("Length (cm)") +
+  xlab("Age") +
   ylab("Residual") +
-  labs(tag = "A") +
-  labs(title = "Residuals vs x-values") +
+  labs(title = "LinLin model: Residuals vs age") +
   theme(text = element_text(size = 18))
 
 # Residuals vs predicted values Y-hat
@@ -104,32 +104,30 @@ ggplot(data = bp.linpred, aes(x = fit, y = e.lin)) +
   geom_hline(yintercept = 0) +
   geom_smooth() +
   expand_limits(y = bp.lim.elin) +
-  xlab("Predicted weight (g)") +
+  xlab("Y-hat") +
   ylab("Residual") +
-  labs(title = "Residuals vs predicted values Y-hat") +
+  labs(title = "LinLin model: Residuals vs Y-hat") +
   theme(text = element_text(size = 18))
 
 # Normal Q-Q-plot of the residuals
 ggplot(data = bp.linpred, aes(sample = e.lin)) +
   geom_qq() +
   geom_qq_line() +
-  labs(title = "Normal Q-Q-plot of the residuals") +
-  theme(text = element_text(size = 18))
+  labs(title = "LinLin model: Normal Q-Q-plot of the residuals") +
+  theme(text = element_text(size = 16))
 
 # Histogram of residuals
 ggplot(data = bp.linpred, aes(x = e.lin)) +
   geom_histogram(bins = 20) +
-  xlab("Residuals") +
-  labs(title = "Histogram of residuals") +
+  xlab("Residual") +
+  labs(title = "LinLin model: Histogram of residuals") +
   theme(text = element_text(size = 18))
 
 
 
 
-### LOG-LIN Model ###
+### LOG-LIN Model ####
 
-
-# LOG-LIN MODEL 
 #### Make calculations ####
 #Removes the problematic observation of betaplasma = 0, that can't be log:ed.
 #the function removes the entire row 0, but keeps all other data
@@ -165,15 +163,12 @@ bp.loglinpred$conf.fit <- bp.loglinpred$pred.fit <- NULL
   + geom_ribbon(aes(ymin = conf.lwr, ymax = conf.upr), alpha = 0.2)
   + geom_line(data = bp.loglinpred, aes(y = pred.lwr), color = "red", linetype = "dashed", size = 1)
   + geom_line(data = bp.loglinpred, aes(y = pred.upr), color = "red", linetype = "dashed", size = 1)
-  + xlab("Length (cm)")
-  + ylab("Weight (g)")
-  + labs(title = "Betaplasma against age, log-linear model")
+  + xlab("Age") 
+  + ylab("Plasma beta-carotene (ng/ml)")
+  + labs(title = "LogLin: Plasma beta-carotene vs age")
   + labs(caption = "fitted log-linear model, 95% conf. and pred. intervals")
   + theme(text = element_text(size = 18))
 )
-
-
-
 
 #### Basic residual analysis ####
 # Add the residuals to the predicted data, name them e.log (a vector of residuals).
@@ -188,6 +183,7 @@ bp.loglinpred$e.log <- bp.loglinmodel$residuals
 # add a moving average, geom_smooth(), to see trends,
 # and expand the y-axis to include +/- max residual.
 
+# Plots #####
 # Residuals vs x-values
 ggplot(data = bp.loglinpred, aes(x = age, y = e.log)) +
   geom_point() +
@@ -196,8 +192,7 @@ ggplot(data = bp.loglinpred, aes(x = age, y = e.log)) +
   expand_limits(y = bp.residualspan) +
   xlab("Age") +
   ylab("Residual") +
-  labs(tag = "A") +
-  labs(title = "Residuals vs x-values") +
+  labs(title = "LogLin model: Residuals vs age") +
   theme(text = element_text(size = 18))
 
 # Residuals vs predicted values Y-hat
@@ -215,12 +210,12 @@ ggplot(data = bp.loglinpred, aes(x = fit, y = e.log)) +
 ggplot(data = bp.loglinpred, aes(sample = e.log)) +
   geom_qq() +
   geom_qq_line() +
-  labs(title = "Normal Q-Q-plot of the residuals") +
-  theme(text = element_text(size = 18))
+  labs(title = "LogLin model: Normal Q-Q-plot of the residuals") +
+  theme(text = element_text(size = 16))
 
 # Histogram of residuals
 ggplot(data = bp.loglinpred, aes(x = e.log)) +
   geom_histogram(bins = 20) +
-  xlab("Residuals") +
-  labs(title = "Histogram of residuals") +
+  xlab("Residual") +
+  labs(title = "LogLin model: Histogram of residuals") +
   theme(text = element_text(size = 18))

@@ -148,6 +148,7 @@ diff75
 
 exp(plasma.y0.pred)
 
+exp(confint(logmodel))
 
 #### 
 
