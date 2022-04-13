@@ -1,337 +1,3 @@
-#### Log-Lin Model ####
-
-plasma <- read.delim("Data/plasma.txt")
-head(plasma)
-summary(plasma)
-library(ggplot2)
-
-plasmanew <- plasma[plasma$betaplasma > 0, ]
-
-ggplot(data = plasmanew, aes(x = age, y = log(betaplasma))) + geom_point()
-
-#Log-lin model
-logmodel <- lm(log(betaplasma) ~ age, data = plasmanew)
-logmodel$coefficients
-confint(logmodel)
-
-#Plot data
-plasma.pred <- 
-  cbind(plasmanew, 
-        fit = predict(logmodel),
-        conf = predict(logmodel, interval = "confidence"))
-
-plasma.pred$conf.fit <- NULL
-head(plasma.pred)
-
-(
-  plot.data <- 
-    ggplot(data = plasma.pred, aes(x = age, y = log(betaplasma))) + 
-    geom_point(size = 1) +
-    xlab("Age (years)") +
-    ylab("Concentration of beta carotene (log(ng/ml)") +
-    labs(title = "How the concentration of beta carotene plasma varies with age") +
-    theme(text = element_text(size = 14))
-)
-
-(
-  plot.line <- plot.data + 
-    geom_line(aes(y = fit), color = "blue", size = 1) +
-    labs(caption = "data and fitted line")
-)
-
-(
-  plot.conf <- plot.line + 
-    geom_ribbon(aes(ymin = conf.lwr, ymax = conf.upr), alpha = 0.2) +
-    labs(caption = "data, fitted line and confidence interval")
-)
-
-#Calculate residuals
-plasma.pred$e <- logmodel$residuals
-head(plasma.pred$e)
-
-#Plot residuals
-ggplot(data = plasma.pred, aes(x = fit, y = e)) +
-  geom_point(size = 1) +
-  geom_hline(yintercept = 0) +
-  xlab("Predicted concentration plasma (log(ng/ml)") +
-  ylab("Residual") +
-  labs(tag = "B") +
-  labs(title = "Residuals vs predicted values Y-hat") +
-  theme(text = element_text(size = 18)) + 
-  geom_smooth()
-
-ggplot(data = plasma.pred, aes(x = age, y = e)) +
-  geom_point(size = 1) +
-  geom_hline(yintercept = 0) +
-  xlab("Age (years)") +
-  ylab("Residual") +
-  labs(tag = "A") +
-  labs(title = "Residuals vs age") +
-  theme(text = element_text(size = 18)) + 
-  geom_smooth()
-
-#Q-Q-Plot
-ggplot(data = plasma.pred, aes(sample = e)) +
-  geom_qq(size = 3) +
-  geom_qq_line() + 
-  labs(tag = "C") + 
-  labs(title = "Normal Q-Q-plot of the residuals") +
-  theme(text = element_text(size = 18))
-
-#Histogram
-ggplot(data = plasma.pred, aes(x = e)) +
-  geom_histogram(bins = 20) +
-  xlab("Residuals") +
-  labs(title = "Histogram of residuals") +
-  theme(text = element_text(size = 18))
-
-#Plot data, fitted line, confidence, prediction
-plasma.pred <- 
-  cbind(plasmanew, 
-        fit = predict(logmodel),
-        conf = predict(logmodel, interval = "confidence"),
-        pred = predict(logmodel, interval = "prediction"))
-plasma.pred$conf.fit <- plasma.pred$pred.fit <- NULL
-head(plasma.pred)
-
-
-(
-  plot.data <- 
-    ggplot(data = plasma.pred, aes(x = age, y = log(betaplasma))) + 
-    geom_point(size = 1) +
-    xlab("Age (years)") +
-    ylab("Concentration of beta carotene (log(ng/ml)") +
-    labs(title = "How the concentration of beta carotene plasma varies with age") +
-    theme(text = element_text(size = 14))
-)
-
-(
-  plot.line <- plot.data + 
-    geom_line(aes(y = fit), color = "blue", size = 1) +
-    labs(caption = "data and fitted line")
-)
-
-(
-  plot.conf <- plot.line + 
-    geom_ribbon(aes(ymin = conf.lwr, ymax = conf.upr), alpha = 0.2) +
-    labs(caption = "data, fitted line and confidence interval")
-)
-
-(
-  plot.pred <- plot.conf + 
-    geom_line(aes(y = pred.lwr),
-              color = "red", linetype = "dashed", size = 1) +
-    geom_line(aes(y = pred.upr),
-              color = "red", linetype = "dashed", size = 1) +
-    labs(caption = "data, fitted line, 95% confidence and prediction intervals")
-)
-
-
-
-
-
-#### Prediction Intervals ####
-plasma.x0 <- data.frame(age = c(25, 26, 75, 76))
-plasma.x0
-
-(plasma.y0.pred = cbind(plasma.x0,
-                   fit = predict(logmodel, plasma.x0),
-                   conf = predict(logmodel, plasma.x0, interval = "confidence"),
-                   pred = predict(logmodel, plasma.x0, interval = "prediction")))
-
-plasma.y0.pred$conf.fit <- plasma.y0.pred$pred.fit <- NULL
-plasma.y0.pred
-diff25 <- exp(plasma.y0.pred$fit[2]) - exp(plasma.y0.pred$fit[1])
-diff75 <- exp(plasma.y0.pred$fit[4]) - exp(plasma.y0.pred$fit[3])
-diff25
-diff75
-
-exp(plasma.y0.pred)
-
-
-#### 
-
-#### Categorical Variables ####
-summary(plasmanew)
-head(plasmanew)
-
-#Introduce categorical variables
-plasmanew$sex <- factor(plasmanew$sex,
-                          levels = c(1, 2),
-                          labels = c("Male", "Female"))
-
-plasmanew$smokstat <- factor(plasmanew$smokstat,
-                          levels = c(1, 2, 3),
-                          labels = c("Never", "Former", "Current Smoker"))
-
-plasmanew$bmicat <- factor(plasmanew$bmicat,
-                           levels = c(1, 2, 3, 4),
-                           labels = c("Underweight", "Normal", "Overweight", 
-                                      "Obese"))
-#Frequency tables
-table(plasmanew$sex)
-table(plasmanew$smokstat)
-table(plasmanew$bmicat)
-
-#BMI Model
-bmi.model <- lm(log(betaplasma) ~ bmicat, data = plasmanew)
-bmi.model$coefficients
-
-summary(bmi.model)
-
-#Change reference to "Normal"
-plasmanew$bmicat <- relevel(plasmanew$bmicat, ref = "Normal")
-bmi.model <- lm(log(betaplasma) ~ bmicat, data = plasmanew)
-bmi.model$coefficients
-summary(bmi.model)
-
-#Sex Model
-plasmanew$sex <- relevel(plasmanew$sex, ref = "Female")
-sex.model <- lm(log(betaplasma) ~ sex, data = plasmanew)
-sex.model$coefficients
-summary(sex.model)
-
-#SmokStat Model
-smokstat.model <- lm(log(betaplasma) ~ smokstat, data = plasmanew)
-smokstat.model$coefficients
-summary(smokstat.model)
-
-#Model with age, sex, smokstat, bmicat
-fullmodel <- lm(log(betaplasma) ~ age + sex + smokstat + bmicat, data = plasmanew)
-fullmodel$coefficients
-confint(fullmodel)
-exp(confint(fullmodel))
-
-##Test 1: Is this model better than the null model?
-sum.full <- summary(fullmodel)
-sum.full
-sum.full$coefficients
-# If P(F(4, 309) > 13.85) = 3.786e-09 < 0.05 => reject H0 
-# => the full model is better than the null model
-
-# Test 2: Is this model better than only using age?
-logmodel <- lm(log(betaplasma) ~ age, data = plasmanew)
-
-# Compare the models:
-(plasma.anova <- anova(logmodel, fullmodel))
-
-# Compare the F-value with upper F-quantile:
-(Fvalue <- plasma.anova$F[2])
-qf(1 - 0.05, 6, 306)
-
-# Calculate P-value:
-pf(Fvalue, 6, 306, lower.tail = FALSE)
-plasma.anova$`Pr(>F)`[2]
-#P-value = 1.76346e-08 < 0.05 => reject H0 => full model is better than reduced model
-
-
-# Test 3: Are the variables significant?
-agetest <- lm(log(betaplasma) ~ sex + smokstat + bmicat, data = plasmanew)
-sextest <- lm(log(betaplasma) ~ age + smokstat + bmicat, data = plasmanew)
-smokstattest <- lm(log(betaplasma) ~ age + sex + bmicat, data = plasmanew)
-bmicattest <- lm(log(betaplasma) ~ age + sex + smokstat, data = plasmanew)
-
-#age
-(test.anova <- anova(agetest, fullmodel))
-test.anova$F[2]
-test.anova$`Pr(>F)`[2]
-
-#sex
-(test.anova <- anova(sextest, fullmodel))
-test.anova$F[2]
-test.anova$`Pr(>F)`[2]
-
-#smokstat
-(test.anova <- anova(smokstattest, fullmodel))
-test.anova$F[2]
-test.anova$`Pr(>F)`[2]
-
-#bmicat
-(test.anova <- anova(bmicattest, fullmodel))
-test.anova$F[2]
-test.anova$`Pr(>F)`[2]
-
-# Test 4: Is underweight significantly different from normalweight?
-bmi.model <- lm(log(betaplasma) ~ bmicat, data = plasmanew)
-sum.bmi <- summary(bmi.model)
-sum.bmi
-sum.bmi$coefficients[, "Pr(>|t|)"]
-
-#### Plot ####
-
-plasma.pred <- cbind(plasmanew,
-                     fit = predict(fullmodel),
-                     conf = predict(fullmodel, interval = "confidence"),
-                     pred = predict(fullmodel, interval = "prediction"))
-
-plasma.pred$conf.fit <- plasma.pred$pred.fit <- NULL
-
-ggplot(data = plasma.pred, aes(x = age, y = log(betaplasma), color = sex)) + geom_point() +
-  geom_line(aes(y = fit)) + 
-  geom_ribbon(aes(ymin = conf.lwr, ymax = conf.upr), alpha = 0.2) + 
-  geom_line(aes(y = pred.lwr),linetype = "dashed", size = 1) +
-  geom_line(aes(y = pred.upr), linetype = "dashed", size = 1) + 
-  facet_grid(smokstat ~ relevel(bmicat, "Underweight"))
-
-#### Confidence and prediction intervals for a new data point ####
-avg.age <- mean(plasmanew$age)
-plasma.x0 <- data.frame(age = c(avg.age), bmicat = "Underweight", smokstat = "Former",
-                        sex = "Male")
-(plasma.y0 <- cbind(plasma.x0,
-                   fit = predict(fullmodel, plasma.x0),
-                   conf = predict(fullmodel, plasma.x0, interval = "confidence"),
-                   pred = predict(fullmodel, plasma.x0, interval = "prediction")))
-
-plasma.y0$conf.fit <- plasma.y0$pred.fit <- NULL
-
-#### Continuous BMI ####
-contbmi.model <- lm(log(betaplasma) ~ age + sex + smokstat + quetelet, data = plasmanew)
-contbmi.model$coefficients
-confint(contbmi.model)
-exp(contbmi.model$coefficients)
-exp(confint(contbmi.model))
-
-#### Confidence and prediction intervals for a man and a woman ####
-plasma.xwoman <- data.frame(age = c(40), sex = "Female", smokstat = "Former",
-                         bmicat = "Normal", quetelet = c(22))
-plasma.xman <- data.frame(age = c(40), sex = "Male", smokstat = "Former",
-                             bmicat = "Normal", quetelet = c(22))
-
-#Full model
-plasma.ywoman <- cbind(plasma.xwoman,
-                      fit = predict(fullmodel, plasma.xwoman),
-                      conf = predict(fullmodel, plasma.xwoman, interval = "confidence"))
-plasma.ywoman
-(plasma.yman <- cbind(plasma.xman,
-                      fit = predict(fullmodel, plasma.xman),
-                      conf = predict(fullmodel, plasma.xman, interval = "confidence"))
-)
-
-#Continuous BMI
-(plasma.ywoman <- cbind(plasma.xwoman,
-                       fit = predict(contbmi.model, plasma.xwoman),
-                       conf = predict(contbmi.model, plasma.xwoman, interval = "confidence"))
-)
-
-(plasma.yman <- cbind(plasma.xman,
-                     fit = predict(contbmi.model, plasma.xman),
-                     conf = predict(contbmi.model, plasma.xman, interval = "confidence"))
-)
-
-#The difference between BMI 22(normal) and 33(obese)
-fullmodel$coefficients
-confint(fullmodel)
-
-beta.q <- contbmi.model$coefficients["quetelet"]
-11*beta.q
-11*confint(contbmi.model)
-
-
-#### Model with bmicat and quetelet ####
-bothbmi.model <- lm(log(betaplasma) ~ age + sex + smokstat + bmicat + quetelet, 
-                    data = plasmanew)
-confint(bothbmi.model)
-
 #### Ranking the models ####
 model.0 <- fullmodel
 (sum.0 <- summary(model.0))
@@ -354,10 +20,9 @@ sz(collect.AIC <- data.frame(
 
 # The model with quetelet is the better model => background model
 
-#### 
 #### Checking correlation between x-variables ####
 contx <- plasmanew[, c("age", "quetelet", "calories", "fat", "fiber",
-                    "alcohol", "cholesterol", "betadiet")]
+                       "alcohol", "cholesterol", "betadiet")]
 library(ggplot2)
 corr <- cor(contx)
 pairs(contx)
@@ -402,7 +67,7 @@ ggplot(betaplasma.diet, aes(x = fit, y = v)) +
   xlab("log Yhat") + 
   labs(caption = "y = 1/314 (black) and 18/314 (red)") +
   theme(text = element_text(size = 18))
-  
+
 v.strange <- which(betaplasma.diet$v > 0.8)
 betaplasma.diet[v.strange, ]
 
@@ -689,18 +354,18 @@ exp(confint(dietarymodel))
 backmodel <- contbmi.model
 backmodel$coefficients
 (largemodel <- lm(log(betaplasma) ~ age + sex + smokstat + quetelet + 
-                   vituse + calories + fiber + alcohol + betadiet,
-                 data = plasmanew))
+                    vituse + calories + fiber + alcohol + betadiet,
+                  data = plasmanew))
 largemodel$coefficients
 
 model.stepAIC <- step(dietarymodel, 
-     scope = list(lower = nullmodel, upper = largemodel),
-     direction = "both")
+                      scope = list(lower = nullmodel, upper = largemodel),
+                      direction = "both")
 
 model.stepBIC <- step(dietarymodel,
                       scope = list(lower = model.0, upper = largemodel),
                       direction = "both", k = log(nrow(plasmanew))
-      )
+)
 
 model.stepAIC$coefficients
 confint(model.stepAIC)
